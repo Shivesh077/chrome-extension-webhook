@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mutation Trigger</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      color: #e4e4e7;
+      background: #18181b;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #27272a;
+    }
+
+    header .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #00D1B2;
+      box-shadow: 0 0 6px #00D1B2;
+      flex-shrink: 0;
+    }
+
+    header h1 { font-size: 14px; font-weight: 600; color: #fafafa; }
+
+    #active-count {
+      margin-left: auto;
+      font-size: 10px;
+      color: #a1a1aa;
+      background: #27272a;
+      padding: 2px 8px;
+      border-radius: 99px;
+      display: none;
+      white-space: nowrap;
+    }
+
+    /* ---- Status badge ---- */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #09090b;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge.idle      { background: #27272a; color: #a1a1aa; }
+    .badge.selecting { background: #1e3a5f; color: #60a5fa; }
+    .badge.monitoring{ background: #14532d; color: #4ade80; }
+    .badge.paused    { background: #451a03; color: #fb923c; }
+    .badge.error     { background: #3f1717; color: #f87171; }
+
+    /* ---- Current tab target card ---- */
+    .target-card {
+      margin: 10px 12px;
+      padding: 10px 12px;
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .target-card.visible { display: block; }
+
+    .target-card label {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #71717a;
+      margin-bottom: 3px;
+    }
+
+    .selector-text {
+      font-family: "Fira Code", "Cascadia Code", monospace;
+      font-size: 11px;
+      color: #00D1B2;
+      word-break: break-all;
+      margin-bottom: 8px;
+    }
+
+    .value-row { display: flex; gap: 6px; align-items: flex-start; }
+
+    .chip { font-size: 10px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+    .chip.prev { background: #3f1717; color: #f87171; }
+    .chip.curr { background: #14532d; color: #4ade80; }
+
+    /* ---- All monitors panel ---- */
+    #monitors-panel {
+      margin: 0 12px 8px;
+      display: none;
+    }
+
+    #monitors-panel.visible { display: block; }
+
+    #monitors-panel h3 {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #71717a;
+      margin-bottom: 6px;
+      padding: 0 2px;
+    }
+
+    .monitor-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      margin-bottom: 4px;
+    }
+
+    .monitor-row .dot-sm {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      flex-shrink: 0;
+    }
+
+    .monitor-row .mon-selector {
+      font-family: "Fira Code", monospace;
+      font-size: 10px;
+      color: #00D1B2;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .monitor-row .mon-site {
+      font-size: 10px;
+      color: #52525b;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100px;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      padding: 8px 16px;
+      border-top: 1px solid #27272a;
+    }
+
+    .section h2 {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #71717a;
+      margin-bottom: 8px;
+    }
+
+    .field { margin-bottom: 8px; }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      color: #a1a1aa;
+      margin-bottom: 3px;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 5px 8px;
+      background: #09090b;
+      border: 1px solid #3f3f46;
+      border-radius: 5px;
+      color: #e4e4e7;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .field input:focus { border-color: #00D1B2; }
+
+    /* ---- One-time token setup banner ---- */
+    #token-setup {
+      margin: 0 12px 10px;
+      padding: 10px 12px;
+      background: #1c1917;
+      border: 1px solid #78350f;
+      border-radius: 8px;
+    }
+
+    #token-setup .setup-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #fb923c;
+      margin-bottom: 6px;
+    }
+
+    #token-setup .setup-hint {
+      font-size: 10px;
+      color: #78716c;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    #token-setup input {
+      width: 100%;
+      padding: 5px 8px;
+      background: #09090b;
+      border: 1px solid #78350f;
+      border-radius: 5px;
+      color: #e4e4e7;
+      font-size: 12px;
+      outline: none;
+      margin-bottom: 6px;
+      transition: border-color 0.15s;
+    }
+
+    #token-setup input:focus { border-color: #fb923c; }
+
+    #btn-save-token {
+      width: 100%;
+      padding: 6px;
+      background: #78350f;
+      color: #fed7aa;
+      border: none;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    #btn-save-token:hover { background: #92400e; }
+
+    /* ---- Token status row ---- */
+    #token-status {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 16px 10px;
+    }
+
+    #token-status.visible { display: flex; }
+
+    #token-status .token-label {
+      font-size: 11px;
+      color: #52525b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #token-status .token-label .dot-green {
+      width: 7px; height: 7px;
+      background: #4ade80;
+      border-radius: 50%;
+    }
+
+    #btn-reset-token {
+      font-size: 10px;
+      color: #52525b;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex: unset;
+      transition: color 0.15s;
+    }
+
+    #btn-reset-token:hover { color: #f87171; }
+
+    /* ---- Bottom buttons ---- */
+    .save-row { padding: 0 16px 10px; }
+
+    #btn-save {
+      width: 100%;
+      background: #3f3f46;
+      color: #e4e4e7;
+      padding: 7px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    #btn-save:hover { background: #52525b; }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px 14px;
+    }
+
+    button {
+      flex: 1;
+      padding: 8px 0;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    #btn-pick { background: #00D1B2; color: #09090b; }
+    #btn-pick:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #btn-stop { background: #27272a; color: #a1a1aa; }
+    #btn-stop:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .toast {
+      margin: 0 16px 10px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      display: none;
+    }
+
+    .toast.success { background: #14532d; color: #4ade80; display: block; }
+    .toast.error   { background: #3f1717; color: #f87171; display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="dot"></div>
+  <h1>Mutation Trigger</h1>
+  <span id="active-count"></span>
+</header>
+
+<div class="status-bar">
+  <span style="color:#71717a; font-size:11px;">This tab</span>
+  <span id="status-badge" class="badge idle">Idle</span>
+</div>
+
+<div id="target-card" class="target-card">
+  <label>Watching selector</label>
+  <div id="info-selector" class="selector-text"></div>
+  <label>State</label>
+  <div class="value-row">
+    <span id="info-prev" class="chip prev"></span>
+    <span style="color:#52525b; font-size:10px; padding-top:3px;">→</span>
+    <span id="info-curr" class="chip curr"></span>
+  </div>
+</div>
+
+<!-- All active monitors across tabs -->
+<div id="monitors-panel">
+  <h3>All active monitors</h3>
+  <div id="monitors-list"></div>
+</div>
+
+<!-- One-time token setup — only visible when no token stored -->
+<div id="token-setup">
+  <div class="setup-title">⚠ One-time token setup required</div>
+  <div class="setup-hint">Paste your server auth token. It will be stored securely and never shown again.</div>
+  <input id="cfg-token" type="password" placeholder="Paste auth token here" autocomplete="off" />
+  <button id="btn-save-token">Save Token</button>
+</div>
+
+<!-- Token status row — only visible after token is stored -->
+<div id="token-status">
+  <span class="token-label">
+    <span class="dot-green"></span>
+    Auth token configured
+  </span>
+  <button id="btn-reset-token">Reset</button>
+</div>
+
+<div class="section">
+  <h2>Configuration</h2>
+  <div class="field">
+    <label>Webhook URL</label>
+    <input id="cfg-url" type="text" placeholder="http://localhost:8000/api/webhook" />
+  </div>
+</div>
+
+<div class="save-row">
+  <button id="btn-save">Save URL</button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div class="btn-row">
+  <button id="btn-pick">Pick Element</button>
+  <button id="btn-stop" disabled>Stop</button>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

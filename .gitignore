@@ -1,0 +1,24 @@
+# Python backend
+backend/.env
+backend/.venv/
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/server.log
+backend/server.err
+
+# Node / tests
+tests/node_modules/
+tests/chrome-profile/
+tests/chrome-profile-token-test/
+tests/chrome-profile-real/
+tests/screenshots/
+tests/screenshots-token/
+tests/screenshots-real/
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

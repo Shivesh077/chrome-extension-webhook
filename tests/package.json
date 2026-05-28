@@ -1,0 +1,11 @@
+{
+  "name": "mwt-extension-tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node extension-test.js"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MWT Demo — Product Page</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 60px auto; padding: 0 20px; background: #f5f5f5; }
+    h1 { font-size: 22px; }
+    #stock-btn {
+      padding: 12px 28px; font-size: 16px; font-weight: 700;
+      border: none; border-radius: 8px; cursor: pointer;
+      background: #e53e3e; color: #fff; margin-top: 20px; display: block;
+    }
+    #stock-btn.available { background: #38a169; }
+    #price { font-size: 28px; font-weight: 800; margin-top: 16px; color: #2d3748; }
+    #status-log {
+      margin-top: 30px; padding: 12px; background: #fff;
+      border: 1px solid #ddd; border-radius: 6px;
+      font-family: monospace; font-size: 12px; white-space: pre-line;
+      min-height: 60px;
+    }
+    .controls { margin-top: 24px; display: flex; gap: 10px; }
+    .controls button {
+      padding: 8px 18px; border: 1px solid #aaa; border-radius: 5px;
+      background: #fff; cursor: pointer; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Acme Wireless Headphones — Pro Max</h1>
+  <div id="price">$299.99</div>
+  <button id="stock-btn">Out of Stock</button>
+  <div class="controls">
+    <button id="toggle-stock">Toggle Stock Status</button>
+    <button id="change-price">Change Price</button>
+    <button id="simulate-login">Simulate Login Redirect</button>
+  </div>
+  <div id="status-log">Waiting for interactions…</div>
+
+  <script>
+    const btn   = document.getElementById('stock-btn');
+    const price = document.getElementById('price');
+    const log   = document.getElementById('status-log');
+
+    function addLog(msg) {
+      const ts = new Date().toLocaleTimeString();
+      log.textContent += `\n[${ts}] ${msg}`;
+    }
+
+    document.getElementById('toggle-stock').addEventListener('click', () => {
+      if (btn.textContent === 'Out of Stock') {
+        btn.textContent = 'Add to Cart';
+        btn.classList.add('available');
+        addLog('Stock status → Add to Cart');
+      } else {
+        btn.textContent = 'Out of Stock';
+        btn.classList.remove('available');
+        addLog('Stock status → Out of Stock');
+      }
+    });
+
+    document.getElementById('change-price').addEventListener('click', () => {
+      const newPrice = '$' + (Math.random() * 400 + 99).toFixed(2);
+      price.textContent = newPrice;
+      addLog('Price changed → ' + newPrice);
+    });
+
+    document.getElementById('simulate-login').addEventListener('click', () => {
+      addLog('Redirecting to /login…');
+      setTimeout(() => { window.location.href = '/login'; }, 500);
+    });
+
+    addLog('Demo page ready.');
+  </script>
+</body>
+</html>
